@@ -10,7 +10,7 @@ require 'secret_knock'
 class XInputWrapper
 
   def initialize(device: '3', host: 'sps', port: '59000', 
-                  topic: 'input/keyboard', verbose: true, lookup: nil)
+                  topic: 'input/keyboard', verbose: true, lookup: {})
 
     @lookup = {
       37 => :control,
@@ -29,7 +29,11 @@ class XInputWrapper
   end
 
   def message(msg)
+    
+    puts ':: ' + msg.inspect if @verbose        
+    
     return if msg.strip.empty?
+    
     @sps.notice "%s: %s" % [@topic, msg]
   end
 

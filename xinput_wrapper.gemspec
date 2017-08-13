@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'xinput_wrapper'
-  s.version = '0.1.0'
+  s.version = '0.1.1'
   s.summary = 'A wrapper for the Linux utility xinput. Publishes an SPS ' + 
       'message whenever the super key is pressed as well as publishing a ' + 
       'deciphered message when the control key is pressed more than once'
