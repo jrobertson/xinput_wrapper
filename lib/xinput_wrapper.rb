@@ -10,7 +10,7 @@ require 'secret_knock'
 class XInputWrapper
 
   def initialize(device: '3', host: 'sps', port: '59000', 
-                  topic: 'input/keyboard', verbose: true, lookup: {})
+             topic: 'input/keyboard', verbose: true, lookup: {}, interval: nil)
 
     @lookup = {
       37 => :control,
@@ -22,6 +22,9 @@ class XInputWrapper
     @sps = SPSPub.new host: host, port: port
     @sk = SecretKnock.new short_delay: 0.25, long_delay: 0.5, 
                               external: self, verbose: verbose
+    @interval = interval
+    @time = Time.now if interval
+    
   end
 
   def knock()
@@ -57,6 +60,14 @@ class XInputWrapper
         keycode = x[/detail: (\d+)/,1].to_i
 
         puts 'keycode: ' + keycode.to_s if keycode > 0 and @verbose
+        
+        if @interval then
+          
+          if Time.now > @time + @interval then
+            @sps.notice "%s: key pressed" % [@topic] 
+            @time = Time.now
+          end
+        end
 
         case @lookup[keycode]
         when :lshift
