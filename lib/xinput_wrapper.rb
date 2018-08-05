@@ -10,7 +10,8 @@ require 'secret_knock'
 class XInputWrapper
 
   def initialize(device: '3', host: 'sps', port: '59000', 
-             topic: 'input/keyboard', verbose: true, lookup: {}, interval: nil)
+                 topic: 'input/keyboard', verbose: true, lookup: {}, 
+                 interval: nil, debug: false)
 
     @lookup = {
       37 => :control,
@@ -18,10 +19,10 @@ class XInputWrapper
       133 => :super
     }.merge(lookup)
 
-    @device, @topic, @verbose = device, topic, verbose
+    @device, @topic, @verbose, @debug = device, topic, verbose, debug
     @sps = SPSPub.new host: host, port: port
     @sk = SecretKnock.new short_delay: 0.25, long_delay: 0.5, 
-                              external: self, verbose: verbose
+                              external: self, verbose: verbose, debug: debug
     @interval = interval
     @time = Time.now if interval
     
@@ -58,8 +59,10 @@ class XInputWrapper
       if type == 13 then
 
         keycode = x[/detail: (\d+)/,1].to_i
+        next if keycode == 0
 
         puts 'keycode: ' + keycode.to_s if keycode > 0 and @verbose
+        puts '>keycode: ' + keycode.to_s  if @debug
         
         if @interval then
           
@@ -79,6 +82,8 @@ class XInputWrapper
           puts 'super key pressed'  if @verbose
           message 'super key pressed' 
         end
+        
+        sk.reset if @lookup[keycode] != :control
 
       end
     end
