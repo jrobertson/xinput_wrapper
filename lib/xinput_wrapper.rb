@@ -3,49 +3,40 @@
 # file: xinput_wrapper.rb
 
 
-require 'sps-pub'
-require 'secret_knock'
-
 
 class XInputWrapper
 
-  def initialize(device: '3', host: 'sps', port: '59000', 
-                 topic: 'input/keyboard', verbose: true, lookup: {}, 
-                 interval: nil, debug: false)
+  def initialize(device: '3', verbose: true, lookup: {}, debug: false )
 
     @lookup = {
-      37 => :control,
-      50 => :lshift,
-      133 => :super
+      37 => :control,      
+      50 => :shift,
+      62 => :shift,
+      67 => :f1,
+      68 => :f2,
+      69 => :f3,
+      70 => :f4,
+      71 => :f5,
+      72 => :f6,
+      73 => :f7,
+      74 => :f8,
+      75 => :f9,
+      76 => :f10,
+      95 => :f11,
+      96 => :f12,            
+      105 => :control,
+      133 => :super,
+      134 => :super
     }.merge(lookup)
-
-    @device, @topic, @verbose, @debug = device, topic, verbose, debug
-    @sps = SPSPub.new host: host, port: port
-    @sk = SecretKnock.new short_delay: 0.25, long_delay: 0.5, 
-                              external: self, verbose: verbose, debug: debug
-    @interval = interval
-    @time = Time.now if interval
     
-  end
-
-  def knock()
-    puts 'knock' if @verbose
-  end
-
-  def message(msg)
+    @device, @verbose, @debug = device, verbose, debug
     
-    puts ':: ' + msg.inspect if @verbose        
-    
-    return if msg.strip.empty?
-    
-    @sps.notice "%s: %s" % [@topic, msg]
   end
 
   def listen()
 
     command = "xinput test-xi2 --root #{@device}"
-    @sk.detect timeout: 0.7
-    sk = @sk
+
     type = 0
 
     IO.popen(command).each_line do |x|
@@ -64,28 +55,39 @@ class XInputWrapper
         puts 'keycode: ' + keycode.to_s if keycode > 0 and @verbose
         puts '>keycode: ' + keycode.to_s  if @debug
         
-        if @interval then
-          
-          if Time.now > @time + @interval then
-            @sps.notice "%s: key pressed" % [@topic] 
-            @time = Time.now
-          end
-        end
+        on_key_press(keycode)
 
-        case @lookup[keycode]
-        when :lshift
-          puts 'left shift' if @verbose
-        when :control
-          puts 'control' if @verbose
-          sk.knock
-        when :super
-          puts 'super key pressed'  if @verbose
-          message 'super key pressed' 
-        end
-        
-        sk.reset if @lookup[keycode] != :control
+        key = @lookup[keycode]
+        puts 'key: ' + key.inspect if @debug
+
+        if key then
+          puts key.to_s + ' key presssed' if @verbose
+          method("on_#{key}_key".to_sym).call
+        end        
 
       end
     end
   end
+  
+  protected
+  
+  def on_control_key()       end  
+  def on_key_press(keycode)  end
+  
+  def on_shift_key()  end
+  def on_super_key()  end
+  
+  def on_f1_key()   end
+  def on_f2_key()   end
+  def on_f3_key()   end
+  def on_f4_key()   end
+  def on_f5_key()   end
+  def on_f6_key()   end    
+  def on_f7_key()   end
+  def on_f8_key()   end
+  def on_f9_key()   end
+  def on_f10_key()  end
+  def on_f11_key()  end
+  def on_f12_key()  end    
+    
 end
