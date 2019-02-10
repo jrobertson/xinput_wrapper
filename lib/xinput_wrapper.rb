@@ -11,7 +11,7 @@ class XInputWrapper
   def initialize(device: '3', verbose: true, lookup: {}, debug: false )
 
     @lookup = {
-      9 => :escape
+      9 => :escape,
       37 => :control,
       50 => :shift,
       62 => :shift,
