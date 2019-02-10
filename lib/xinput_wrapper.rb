@@ -97,7 +97,7 @@ class XInputWrapper
         if key then
           puts key.to_s + ' key presssed' if @verbose
           name = "on_#{key}_key".to_sym
-          method(name).call if self.respond_to? name
+          method(name).call if self.protected_methods.include? name
         end        
 
       end
@@ -106,7 +106,9 @@ class XInputWrapper
   
   protected
   
-  def on_control_key()       end  
+  def on_control_key()
+    puts 'ctrl key pressed'
+  end  
   def on_key_press(keycode)  end
   
   def on_shift_key()  end
