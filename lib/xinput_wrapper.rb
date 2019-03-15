@@ -10,12 +10,20 @@ class XInputWrapper
 
   def initialize(device: '3', verbose: true, lookup: {}, debug: false )
 
+    # defaults to QWERTY keyboard layout
+    
     @lookup = {
+      10=>:"1", 11=>:"2", 12=>:"3", 13=>:"4", 14=>:"5", 15=>:"6", 16=>:"7", 
+      17=>:"8", 18=>:"9", 19=>:"0", 20=>:-, 21=>:"=", 22=>:backspace, 
+      23=>:tab, 24=>:q, 25=>:w, 26=>:e, 27=>:r, 28=>:t, 29=>:y, 30=>:u, 
+      31=>:i, 32=>:o, 33=>:p, 34=>:"[", 35=>:"]", 36=>nil, 38=>:a, 39=>:s, 
+      40=>:d, 41=>:f, 42=>:g, 43=>:h, 44=>:j, 45=>:k, 46=>:l, 47=>:";", 
+      48=>:"'", 49=>nil, 52=>:z, 53=>:x, 54=>:c, 55=>:v, 56=>:b, 57=>:n, 
+      58=>:m, 59=>:",", 60=>:".", 61=>:/, 62=>:right_shift, 65=>:" ",
       9 => :escape,
       37 => :control,
-      50 => :shift,
-      62 => :shift,
-      64 => :alt,
+      50 => :left_shift,
+      64 => :left_alt,
       66 => :capslock,
       67 => :f1,
       68 => :f2,
@@ -29,7 +37,7 @@ class XInputWrapper
       76 => :f10,
       77 => :numlock,
       78 => :scroll_lock,
-      92 => :alt,
+      92 => :right_alt,
       95 => :f11,
       96 => :f12,
       105 => :control,
@@ -88,10 +96,11 @@ class XInputWrapper
 
         puts 'keycode: ' + keycode.to_s if keycode > 0 and @verbose
         puts ('>keycode: ' + keycode.to_s).debug  if @debug
-        
-        on_key_press(keycode)
 
         key = @lookup[keycode]
+        on_key_press(key, keycode)
+
+
         puts ('key: ' + key.inspect).debug if @debug
 
         if key then
@@ -109,7 +118,7 @@ class XInputWrapper
   def on_control_key()
     puts 'ctrl key pressed'
   end  
-  def on_key_press(keycode)  end
+  def on_key_press(key, keycode)  end
   
   def on_shift_key()  end
   def on_super_key()  end
@@ -126,7 +135,15 @@ class XInputWrapper
   def on_f10_key()  end
   def on_f11_key()  end
   def on_f12_key()  end    
+  
+  private
+    
+  def on_leftcontrol_key()  on_control_key()  end
+  def on_rightcontrol_key() on_control_key()  end     
+  def on_left_alt_key()     on_alt_key()      end
+  def on_right_alt_key()   on_alt_key()      end    
+  def on_left_shift_key()   on_shift_key()    end
+  def on_right_shift_key()  on_shift_key()    end        
     
 end
 
-# puts  h.sort.map {|x| "%s => :%s" % x}.join(",\n")

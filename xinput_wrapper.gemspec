@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'xinput_wrapper'
-  s.version = '0.2.3'
+  s.version = '0.3.0'
   s.summary = 'A wrapper for the Linux utility xinput.'
   s.authors = ['James Robertson']
   s.files = Dir['lib/xinput_wrapper.rb']
