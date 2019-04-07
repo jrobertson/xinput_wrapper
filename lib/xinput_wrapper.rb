@@ -28,7 +28,7 @@ class XInputWrapper
       31=>:i, 32=>:o, 33=>:p, 34=>:"[", 35=>:"]", 36=>:enter, 38=>:a, 39=>:s, 
       40=>:d, 41=>:f, 42=>:g, 43=>:h, 44=>:j, 45=>:k, 46=>:l, 47=>:";", 
       48=>:"'", 49=>nil, 52=>:z, 53=>:x, 54=>:c, 55=>:v, 56=>:b, 57=>:n, 
-      58=>:m, 59=>:",", 60=>:".", 61=>:/,  65=>:" ",
+      58=>:m, 59=>:",", 60=>:".", 61=>:/,  65=>:space,
       9 => :escape,
       66 => :capslock,
       67 => :f1,
@@ -116,7 +116,9 @@ class XInputWrapper
             puts key.to_s + ' key presssed' if @verbose
             name = "on_#{key}_key".to_sym
             method(name).call if self.protected_methods.include? name
-            on_key_press key, keycode
+            
+            keystring = ((key.length > 1 or key == ' ') ? "{%s}" % key : key)
+            on_key_press keystring, keycode
           end        
     
         else
