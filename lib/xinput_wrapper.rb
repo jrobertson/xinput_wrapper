@@ -98,7 +98,11 @@ class XInputWrapper
       # type = 13 means a key has been pressed
       if type == 13 then
     
-        raw_keys << keycode
+        if @modifiers.include? raw_keys.last or @modifiers.include? keycode then
+          raw_keys << keycode
+        end
+    
+        next if @modifiers.include? keycode
 
         puts 'raw_keys: ' + raw_keys.inspect if @debug
 
@@ -113,25 +117,54 @@ class XInputWrapper
           puts ('key: ' + key.inspect).debug if @debug
 
           if key then
+    
             puts key.to_s + ' key presssed' if @verbose
             name = "on_#{key}_key".to_sym
             method(name).call if self.protected_methods.include? name
             
-            keystring = ((key.length > 1 or key == ' ') ? "{%s}" % key : key)
-            on_key_press keystring, keycode
+            keystring = ((key.length > 1 or key == ' ') ? "{%s}" % key : key)    
+            block_given? ? yield(keystring) : on_key_press(keystring, keycode)
+
           end        
     
         else
 
           keys = raw_keys.map {|kc| @lookup[kc] }
           puts ('keys: ' + keys.inspect) if @debug
-          on_key_press(keys.last, keycode, keys[0..-2])    
+    
+          if block_given? then
+            yield(format_key(keys.last, keys[0..-2]))
+          else
+            on_key_press(keys.last, keycode, keys[0..-2])    
+          end
+    
+          raw_keys = []
 
         end
     
 
 
+      # a key has been released
       elsif type == 14
+    
+        # here we are only looking to detect a 
+        # single modifier key press and release
+    
+        key = @lookup[keycode]
+    
+        unless raw_keys.empty? then
+          puts key.to_s + ' key presssed' 
+    
+          if block_given? then
+    
+            yield(format_key(key.to_s))
+    
+          else
+            name = "on_#{key}_key".to_sym
+            method(name).call if self.protected_methods.include? name
+            on_key_press(key, keycode)
+          end
+        end
     
         index = raw_keys.rindex(keycode)
         raw_keys.delete_at index if index
@@ -172,6 +205,13 @@ class XInputWrapper
   def on_f12_key()  end    
   
   private
+    
+  def format_key(key, modifier=[])
+    
+    modifier.any? ? "{%s}" % (modifier + [key.to_s]).join('+') \
+          : key.to_s
+    
+  end
     
   def on_leftcontrol_key()  on_control_key()  end
   def on_rightcontrol_key() on_control_key()  end     
