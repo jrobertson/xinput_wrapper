@@ -29,7 +29,7 @@ class XInputWrapper
       40=>:d, 41=>:f, 42=>:g, 43=>:h, 44=>:j, 45=>:k, 46=>:l, 47=>:";", 
       48=>:"'", 49=>nil, 52=>:z, 53=>:x, 54=>:c, 55=>:v, 56=>:b, 57=>:n, 
       58=>:m, 59=>:",", 60=>:".", 61=>:/,  65=>:space,
-      9 => :escape,
+      9 => :esc,
       66 => :capslock,
       67 => :f1,
       68 => :f2,
@@ -42,18 +42,18 @@ class XInputWrapper
       75 => :f9,
       76 => :f10,
       77 => :numlock,
-      78 => :scroll_lock,
+      78 => :scrolllock,
       95 => :f11,
       96 => :f12,
-      107 => :print_screen,
+      107 => :sysrq, # print_screen
       110 => :home,
-      111 => :up_arrow,
-      112 => :pgup,
-      113 => :left_arrow,
-      114 => :right_arrow,
-      115 => :end,
-      116 => :down_arrow,
-      117 => :pgdown,
+      111 => :up, # arrow keys
+      112 => :pageup,
+      113 => :left, # arrow keys
+      114 => :right, # arrow keys
+      115 => :end, 
+      116 => :down, # arrow keys
+      117 => :pagedown,
       121 => :mute,
       122 => :vol_down,
       123 => :vol_up,
