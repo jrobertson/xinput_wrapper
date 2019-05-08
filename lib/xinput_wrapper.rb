@@ -5,6 +5,11 @@
 require 'c32'
 
 
+MOTION = 6
+RAWKEY_PRESS = 13
+RAWKEY_RELEASE = 14
+
+
 class XInputWrapper
   using ColouredText
 
@@ -83,20 +88,73 @@ class XInputWrapper
 
     type = 0
     raw_keys = []
+    t1 = Time.now
+    lines = []
 
     IO.popen(command).each_line do |x|
  
       #print "GOT ", x
-      raw_type = x[/EVENT type (\d+)/,1]
+      if x[/EVENT type \d \(Motion\)/] and (Time.now > (t1 + 0.06125)) then 
 
-      type = raw_type.to_i unless raw_type.nil?
-      next unless type == 13 or type == 14
+        type = x[/EVENT type (\d+)/,1].to_i
     
-      keycode = x[/detail: (\d+)/,1].to_i
-      next if keycode == 0
+        r = lines.join[/^\s+root: (\d+\.\d{2}\/\d+\.\d{2})/,1]
+
+        if r then
+      
+          x1, y1 = r.split('/').map(&:to_f) 
+          puts "x1: %s y1: %s" % [x1, y1] if @debug
+          on_mousemove(x1, y1)
+          t1 = Time.now  
+    
+        end        
+
+        lines = [x]                                                                
+
+      elsif x[/EVENT type \d+ \(RawKey(?:Release|Press)\)/]
+
+        type = x[/EVENT type (\d+)/,1].to_i
+
+        lines = [x]
+
+      elsif type == MOTION or type == RAWKEY_PRESS or type == RAWKEY_RELEASE
+
+        lines << x
+    
+        if x == "\n" then
+          case lines.first[/(?<=EVENT type )\d+/].to_i
+          when RAWKEY_PRESS
+      
+            r = lines.join[/detail: (\d+)/,1]
+
+            keycode = r.to_i if r
+
+            type = lines.join[/EVENT type (\d+)/,1] .to_i
+      
+          when RAWKEY_RELEASE
+      
+            r = lines.join[/detail: (\d+)/,1]
+
+            keycode = r.to_i if r
+
+            type = lines.join[/EVENT type (\d+)/,1] .to_i          
+      
+          end    
+
+    
+        else
+            next
+        end
+    
+      else
+        next
+      end
+    
+      next unless keycode
+      puts 'keycode: ' + keycode.inspect if @debug
           
       # type = 13 means a key has been pressed
-      if type == 13 then
+      if type == RAWKEY_PRESS then
     
         if @modifiers.include? raw_keys.last or @modifiers.include? keycode then
           raw_keys << keycode
@@ -145,7 +203,7 @@ class XInputWrapper
 
 
       # a key has been released
-      elsif type == 14
+      elsif type == RAWKEY_RELEASE
     
         # here we are only looking to detect a 
         # single modifier key press and release
@@ -184,6 +242,14 @@ class XInputWrapper
     
     if @debug then
       puts ('key: ' + key.inspect).debug
+    end
+    
+  end
+    
+  def on_mousemove(x,y)
+    
+    if @debug then
+      puts "on_mousemove() x: %s y: %s" % [x, y]
     end
     
   end
