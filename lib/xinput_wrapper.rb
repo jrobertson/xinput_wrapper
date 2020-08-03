@@ -2,6 +2,12 @@
 
 # file: xinput_wrapper.rb
 
+# Captures keyboard or mouse events using program xinput.
+
+
+# note: To display a list of xinput devices, run the 
+#       xinput program without any options.
+
 require 'c32'
 
 
@@ -13,7 +19,14 @@ RAWKEY_RELEASE = 14
 class XInputWrapper
   using ColouredText
 
-  def initialize(device: '3', verbose: true, lookup: {}, debug: false )
+  # device list:
+  #       3 = Virtual core keyboard
+  #       4 = Virtual core XTEST pointer (active when using VNC)
+  #       5 = Virtual core XTEST keyboard (active when using VNC)
+  #       10 = USB Optical Mouse (locally attached)
+  #       11 = Microsoft Wired Keyboard 600 (locally attached)
+  #
+  def initialize(device: nil, verbose: true, lookup: {}, debug: false )
 
     # defaults to QWERTY keyboard layout
     @modifiers = {
@@ -83,7 +96,7 @@ class XInputWrapper
   end
 
   def listen()
-
+    
     command = "xinput test-xi2 --root #{@device}"
 
     type = 0
@@ -93,7 +106,7 @@ class XInputWrapper
 
     IO.popen(command).each_line do |x|
  
-      #print "GOT ", x
+      print "GOT ", x
       if x[/EVENT type \d \(Motion\)/] and (Time.now > (t1 + 0.06125)) then 
 
         type = x[/EVENT type (\d+)/,1].to_i
@@ -238,7 +251,7 @@ class XInputWrapper
     puts 'ctrl key pressed'
   end  
     
-  def on_key_press(key, keycode, modifier)
+  def on_key_press(key, keycode, modifier=nil)
     
     if @debug then
       puts ('key: ' + key.inspect).debug
