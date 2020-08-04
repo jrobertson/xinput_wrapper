@@ -14,10 +14,15 @@ require 'c32'
 MOTION = 6
 RAWKEY_PRESS = 13
 RAWKEY_RELEASE = 14
+RAWBUTTON_PRESS = 15
+RAWBUTTON_RELEASE = 16
+BUTTONS = %i(left middle right scrollup scrolldown)
 
 
 class XInputWrapper
   using ColouredText
+  
+  attr_accessor :stop
 
   # device list:
   #       3 = Virtual core keyboard
@@ -26,8 +31,11 @@ class XInputWrapper
   #       10 = USB Optical Mouse (locally attached)
   #       11 = Microsoft Wired Keyboard 600 (locally attached)
   #
-  def initialize(device: nil, verbose: true, lookup: {}, debug: false )
+  def initialize(device: nil, verbose: true, lookup: {}, debug: false, 
+                 callback: nil )
 
+    @callback = callback
+    
     # defaults to QWERTY keyboard layout
     @modifiers = {
       62 => :shift,     # right control
@@ -97,16 +105,19 @@ class XInputWrapper
 
   def listen()
     
+    @stop = false
+    
     command = "xinput test-xi2 --root #{@device}"
 
     type = 0
     raw_keys = []
     t1 = Time.now
-    lines = []
+    lines = []    
 
     IO.popen(command).each_line do |x|
  
-      print "GOT ", x
+      break if @stop
+      #print "GOT ", x
       if x[/EVENT type \d \(Motion\)/] and (Time.now > (t1 + 0.06125)) then 
 
         type = x[/EVENT type (\d+)/,1].to_i
@@ -118,19 +129,23 @@ class XInputWrapper
           x1, y1 = r.split('/').map(&:to_f) 
           puts "x1: %s y1: %s" % [x1, y1] if @debug
           on_mousemove(x1, y1)
+          @callback.on_mousemove(x1, y1) if @callback
+          @mouse_pos = [x1,y1]
           t1 = Time.now  
     
         end        
 
         lines = [x]                                                                
 
-      elsif x[/EVENT type \d+ \(RawKey(?:Release|Press)\)/]
+      elsif x[/EVENT type \d+ \(Raw(?:Key|Button)(?:Release|Press)\)/]
 
         type = x[/EVENT type (\d+)/,1].to_i
 
         lines = [x]
+    
 
-      elsif type == MOTION or type == RAWKEY_PRESS or type == RAWKEY_RELEASE
+      elsif [MOTION, RAWKEY_PRESS, RAWKEY_RELEASE, RAWBUTTON_PRESS, 
+             RAWBUTTON_RELEASE].include? type
 
         lines << x
     
@@ -151,6 +166,23 @@ class XInputWrapper
             keycode = r.to_i if r
 
             type = lines.join[/EVENT type (\d+)/,1] .to_i          
+    
+
+          when RAWBUTTON_PRESS
+      
+            r = lines.join[/detail: (\d+)/,1]
+
+            buttoncode = r.to_i if r
+
+            type = lines.join[/EVENT type (\d+)/,1] .to_i
+      
+          when RAWBUTTON_RELEASE
+      
+            r = lines.join[/detail: (\d+)/,1]
+
+            buttoncode = r.to_i if r
+
+            type = lines.join[/EVENT type (\d+)/,1] .to_i       
       
           end    
 
@@ -163,8 +195,9 @@ class XInputWrapper
         next
       end
     
-      next unless keycode
+      next unless keycode or buttoncode
       puts 'keycode: ' + keycode.inspect if @debug
+      puts 'buttoncode: ' + buttoncode.inspect if @debug
           
       # type = 13 means a key has been pressed
       if type == RAWKEY_PRESS then
@@ -195,6 +228,7 @@ class XInputWrapper
             
             keystring = ((key.length > 1 or key == ' ') ? "{%s}" % key : key)    
             block_given? ? yield(keystring) : on_key_press(keystring, keycode)
+            @callback.on_keypress(keystring, keycode) if @callback
 
           end        
     
@@ -207,6 +241,7 @@ class XInputWrapper
             yield(format_key(keys.last, keys[0..-2]))
           else
             on_key_press(keys.last, keycode, keys[0..-2])    
+            @callback.on_keypress(keys.last, keycode, keys[0..-2])  if @callback
           end
     
           raw_keys = []
@@ -234,12 +269,34 @@ class XInputWrapper
             name = "on_#{key}_key".to_sym
             method(name).call if self.protected_methods.include? name
             on_key_press(key, keycode)
+            @callback.on_keypress(key, keycode) if @callback
           end
         end
     
         index = raw_keys.rindex(keycode)
         raw_keys.delete_at index if index
-
+    
+      elsif type == RAWBUTTON_PRESS
+    
+        button = BUTTONS[buttoncode-1]
+    
+        case button
+        when :scrollup
+          on_mouse_scrollup() 
+          @callback.on_mouse_scrollup() if @callback
+        when :scrolldown
+          on_mouse_scrolldown()
+          @callback.on_mouse_scrolldown() if @callback
+        else
+          on_mousedown(button, *@mouse_pos) 
+          @callback.on_mousedown(button, *@mouse_pos) if @callback
+        end
+    
+      elsif type == RAWBUTTON_RELEASE
+    
+        button = BUTTONS[buttoncode-1]
+        on_mouseup(BUTTONS[buttoncode-1], *@mouse_pos)
+    
       end    
     
     end
@@ -259,6 +316,14 @@ class XInputWrapper
     
   end
     
+  def on_mousedown(button, x,y)
+    
+    if @debug then
+      puts "on_mousedown() %s click x: %s y: %s" % [button, x, y]
+    end
+    
+  end    
+    
   def on_mousemove(x,y)
     
     if @debug then
@@ -266,6 +331,31 @@ class XInputWrapper
     end
     
   end
+    
+  def on_mouseup(button, x,y)
+    
+    if @debug then
+      puts "on_mousedown() %s click x: %s y: %s" % [button, x, y]
+    end
+    
+  end        
+    
+  def on_mouse_scrolldown()
+    
+    if @debug then
+      puts "on_mouse_scrolldown()"
+    end
+    
+  end       
+    
+  def on_mouse_scrollup()
+    
+    if @debug then
+      puts "on_mouse_scrollup()"
+    end
+    
+  end           
+
   
   def on_shift_key()  end
   def on_super_key()  end
