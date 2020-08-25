@@ -31,10 +31,14 @@ class XInputWrapper
   #       10 = USB Optical Mouse (locally attached)
   #       11 = Microsoft Wired Keyboard 600 (locally attached)
   #
+  
+  # keys - add the keys you want to be captured. If empty then 
+  #        all keys are captured.
+  
   def initialize(device: nil, verbose: true, lookup: {}, debug: false, 
-                 callback: nil )
+                 callback: nil, keys: [] )
 
-    @callback = callback
+    @callback, @keys = callback, keys
     
     # defaults to QWERTY keyboard layout
     @modifiers = {
@@ -100,6 +104,7 @@ class XInputWrapper
     }.merge(@modifiers).merge(lookup)
     
     @device, @verbose, @debug = device, verbose, debug
+    @mouse_pos = [0, 0]
     
   end
 
@@ -202,7 +207,8 @@ class XInputWrapper
       # type = 13 means a key has been pressed
       if type == RAWKEY_PRESS then
     
-        if @modifiers.include? raw_keys.last or @modifiers.include? keycode then
+        if @modifiers.include? raw_keys.last or \
+            @modifiers.include? keycode then
           raw_keys << keycode
         end
     
@@ -224,10 +230,28 @@ class XInputWrapper
     
             puts key.to_s + ' key presssed' if @verbose
             name = "on_#{key}_key".to_sym
-            method(name).call if self.protected_methods.include? name
+            puts 'name: ' + name.inspect if @debug
+    
+            if private_methods.include? name and (@keys.empty? or \
+                                              @keys.include? key.to_sym) then
+              puts 'before method' if @debug
+              method(name).call 
+            end
             
             keystring = ((key.length > 1 or key == ' ') ? "{%s}" % key : key)    
-            block_given? ? yield(keystring) : on_key_press(keystring, keycode)
+    
+            if block_given? then
+    
+              yield(keystring)
+    
+            else
+
+              if @keys.empty? or @keys.include? key.to_sym then
+                on_key_press(keystring, keycode)
+              end    
+    
+            end
+    
             @callback.on_keypress(keystring, keycode) if @callback
 
           end        
@@ -240,9 +264,13 @@ class XInputWrapper
           if block_given? then
             yield(format_key(keys.last, keys[0..-2]))
           else
-            on_key_press(keys.last, keycode, keys[0..-2])    
-            @callback.on_keypress(keys.last, keycode, keys[0..-2])  if @callback
+    
+            if @keys.empty? or (!@keys.empty? and \
+                                @keys.include? keys.last) then
+              on_key_press(keys.last, keycode, keys[0..-2])                
+            end
           end
+          @callback.on_keypress(keys.last, keycode, keys[0..-2])  if @callback
     
           raw_keys = []
 
@@ -266,8 +294,14 @@ class XInputWrapper
             yield(format_key(key.to_s))
     
           else
-            name = "on_#{key}_key".to_sym
-            method(name).call if self.protected_methods.include? name
+            name = "on_#{key.to_s}_key".to_sym
+            puts 'calling method' if @debug
+    
+            if private_methods.include? name and (@keys.empty? or \
+                                              @keys.include? key.to_sym) then
+              method(name).call #if self.methods.include? name
+            end
+    
             on_key_press(key, keycode)
             @callback.on_keypress(key, keycode) if @callback
           end
@@ -302,10 +336,14 @@ class XInputWrapper
     end
   end
   
-  protected
+  private
+    
+  def message(s)
+    puts 'msg: ' + s
+  end
   
-  def on_control_key()
-    puts 'ctrl key pressed'
+  def on_ctrl_key()
+    message 'ctrl key pressed'
   end  
     
   def on_key_press(key, keycode, modifier=nil)
@@ -360,20 +398,18 @@ class XInputWrapper
   def on_shift_key()  end
   def on_super_key()  end
   
-  def on_f1_key()   end
-  def on_f2_key()   end
-  def on_f3_key()   end
-  def on_f4_key()   end
-  def on_f5_key()   end
-  def on_f6_key()   end    
-  def on_f7_key()   end
-  def on_f8_key()   end
-  def on_f9_key()   end
-  def on_f10_key()  end
-  def on_f11_key()  end
-  def on_f12_key()  end    
-  
-  private
+  def on_f1_key()  message 'f1'  end    
+  def on_f2_key()  message 'f2'  end
+  def on_f3_key()  message 'f3'  end
+  def on_f4_key()  message 'f4'  end
+  def on_f5_key()  message 'f5'  end
+  def on_f6_key()  message 'f6'  end    
+  def on_f7_key()  message 'f7'  end
+  def on_f8_key()  message 'f8'  end
+  def on_f9_key()  message 'f9'  end
+  def on_f10_key() message 'f10' end
+  def on_f11_key() message 'f11' end
+  def on_f12_key() message 'f12' end        
     
   def format_key(key, modifier=[])
     
@@ -382,6 +418,7 @@ class XInputWrapper
     
   end
     
+  def on_alt_key()  message 'alt'  end  
   def on_leftcontrol_key()  on_control_key()  end
   def on_rightcontrol_key() on_control_key()  end     
   def on_left_alt_key()     on_alt_key()      end
