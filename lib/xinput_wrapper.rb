@@ -207,6 +207,8 @@ class XInputWrapper
       # type = 13 means a key has been pressed
       if type == RAWKEY_PRESS then
     
+        anykey_press()
+    
         if @modifiers.include? raw_keys.last or \
             @modifiers.include? keycode then
           raw_keys << keycode
@@ -337,6 +339,11 @@ class XInputWrapper
   end
   
   private
+    
+  def anykey_press()
+    # do nothing; used by xinput_wrapperplus
+    puts 'anykey pressed' if @debug
+  end
     
   def message(s)
     puts 'msg: ' + s
